@@ -23,9 +23,10 @@ type frontend struct {
 }
 
 // Instantiates the Frontend service, which makes calls to the compress service
-func NewFrontend(ctx context.Context, compress compress.CompressService) (Frontend, error) {
+func NewFrontend(ctx context.Context, compress compress.CompressService, cache backend.Cache) (Frontend, error) {
 	f := &frontend{
 		compress: compress,
+		kvCache:  cache,
 	}
 	return f, nil
 }
