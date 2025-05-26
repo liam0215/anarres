@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/blueprint-uservices/blueprint/runtime/core/registry"
 	"github.com/liam0215/anarres/workflow/compress"

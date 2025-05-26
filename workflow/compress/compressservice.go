@@ -2,8 +2,6 @@ package compress
 
 import (
 	"context"
-	"fmt"
-	"github.com/blueprint-uservices/blueprint/runtime/core/backend"
 	"github.com/pkg/errors"
 )
 
@@ -30,7 +28,7 @@ func NewCompressService(ctx context.Context) (CompressService, error) {
 // Compress implements CompressService.
 func (c *compressImpl) Compress(ctx context.Context, value string) (string, error) {
 	if value == "" {
-		return errors.New("CompressService.Compress value cannot be empty")
+		return "", errors.New("CompressService.Compress value cannot be empty")
 	}
 
 	// TODO: Implement calls to qpl wrapper
@@ -41,7 +39,7 @@ func (c *compressImpl) Compress(ctx context.Context, value string) (string, erro
 // Decompress implements CompressService.
 func (c *compressImpl) Decompress(ctx context.Context, value string) (string, error) {
 	if value == "" {
-		return errors.New("CompressService.Decompress value cannot be empty")
+		return "", errors.New("CompressService.Decompress value cannot be empty")
 	}
 
 	// TODO: Implement calls to qpl wrapper
