@@ -31,7 +31,8 @@ func NewSimpleWorkload(ctx context.Context, frontend frontend.Frontend) (SimpleW
 
 func (s *workloadGen) Run(ctx context.Context) error {
 	fmt.Printf("myarg is %v\n", *myarg)
-	err := s.frontend.Put(ctx, strconv.Itoa(*myarg), "Hello, world!")
+	value := 0
+	err := s.frontend.Put(ctx, strconv.Itoa(*myarg), strconv.Itoa(value))
 	if err != nil {
 		return fmt.Errorf("error putting item: %w", err)
 	}
@@ -46,7 +47,12 @@ func (s *workloadGen) Run(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			fmt.Println("Key: ", *myarg, ", Value: ", len(val))
+			fmt.Println("Key: ", *myarg, ", Value: ", val)
+			value++
+			err = s.frontend.Put(ctx, strconv.Itoa(*myarg), strconv.Itoa(value))
+			if err != nil {
+				return fmt.Errorf("error putting item: %w", err)
+			}
 		}
 	}
 }
