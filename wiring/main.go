@@ -24,5 +24,6 @@ func main() {
 		name,
 		specs.Basic,
 		specs.GRPC,
+		specs.Docker,
 	)
 }
