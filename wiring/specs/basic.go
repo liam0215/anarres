@@ -24,6 +24,5 @@ func makeBasicSpec(spec wiring.WiringSpec) ([]string, error) {
 	compress_service := workflow.Service[compress.CompressService](spec, "compress_service")
 	cache := simple.Cache(spec, "cache")
 	frontend_service := workflow.Service[frontend.Frontend](spec, "frontend", compress_service, cache)
-
 	return []string{compress_service, frontend_service}, nil
 }

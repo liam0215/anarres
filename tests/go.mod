@@ -1,6 +1,6 @@
 module github.com/liam0215/anarres/tests
 
-go 1.24.3
+go 1.23.1
 
 require (
 	github.com/blueprint-uservices/blueprint/runtime v0.0.0-20250525092121-5eadb0c0735e

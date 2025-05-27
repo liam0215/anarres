@@ -23,5 +23,6 @@ func main() {
 	cmdbuilder.MakeAndExecute(
 		name,
 		specs.Basic,
+		specs.GRPC,
 	)
 }
