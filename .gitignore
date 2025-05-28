@@ -23,3 +23,16 @@ go.work.sum
 
 # env file
 .env
+
+# TeX files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.auxlock
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.pdf
