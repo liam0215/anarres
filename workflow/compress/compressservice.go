@@ -16,7 +16,7 @@ type (
 )
 
 type compressImpl struct {
-	// TODO: Maybe add compress library instance here?
+	// TODO: add compress library instance here?
 }
 
 // Instantiates the Frontend service, which makes calls to the compress service

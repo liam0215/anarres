@@ -8,7 +8,8 @@
 \begin{document}
 
 \date{}
-\title{Hardware-Aware Scheduling for Microservices with On-Chip Accelerators}
+% \title{Hardware-Aware Scheduling for Microservices with On-Chip Accelerators}
+\title{Project Checkpoint}
 
 \author{
 {\rm Liam Arzola, Ye Shu}\\
@@ -18,15 +19,34 @@ University of California, San Diego
 \maketitle
 
 \section{The Problem}
-In 2015, Google published a paper characterizing the problem of the ``datacenter tax,'' in which they profiled thousands of machines over a three-year period to find that nearly 30\% of all cycles in the fleet belonged to just a handful of low-level operations~\cite{kanev2015profiling}. This discovery, paired with the end of Dennard scaling and the subsequent slowdown in the improvement of hardware thread performance, led to a decade of increased interest in low latency ``on-chip'' accelerators that are better suited for offloading small granularity datacenter tax operations. For example, Intel's Sapphire Rapids CPUs introduced such accelerators for operations such as memory copy and fill, (de)compression, and de/encryption~\cite{yuan2024intel}. Along with other forms of CPU heterogeneity, like the presence of energy-efficient cores and performance cores, this has led to increased complexity when choosing on which hardware to deploy an application. For example, an application with insufficient instruction-level parallelism that is often stalled on accesses to memory may be better placed on efficiency cores; in contrast, an application with more instructions per cycle would be better off running on performance cores~\cite{kanev2015profiling}. Scheduling applications on heterogeneous hardware is not a new problem; it is a hot topic in machine learning research~\cite{narayanan2023hetero,subramanya2023sia}. However, general-purpose applications like microservices have not had as much attention, especially with regard to hardware heterogeneity. Currently, if developers want to optimize the hardware allocation for their microservice, they have to manually profile it on different hardware platforms, potentially swapping out specialized libraries to take advantage of local accelerators. We aim to work toward a solution for this problem.
+In 2015, Google published a paper characterizing the problem of the ``datacenter tax,'' in which they profiled thousands of machines over a three-year period to find that nearly 30\% of all cycles in the fleet belonged to just a handful of low-level operations~\cite{kanev2015profiling}. 
+This discovery, paired with the end of Dennard scaling and the subsequent slowdown in the improvement of single thread performance, led to a decade of increased interest in low latency ``on-chip'' accelerators that are better suited for offloading small granularity datacenter tax operations. 
+
+For example, Intel's Sapphire Rapids CPUs introduced such accelerators for operations such as memory copy and fill, (de)compression, and de/encryption~\cite{yuan2024intel}. 
+Along with other forms of CPU heterogeneity, like the presence of energy-efficient cores and performance cores, this has led to increased complexity when choosing on which hardware to deploy an application. 
+For example, an application with insufficient instruction-level parallelism that is often stalled on accesses to memory may be better placed on efficiency cores; in contrast, an application with more instructions per cycle would be better off running on performance cores~\cite{kanev2015profiling}. 
+Scheduling applications on heterogeneous hardware is not a new problem; it is a hot topic in machine learning research~\cite{narayanan2023hetero,subramanya2023sia}. 
+
+However, general-purpose applications like microservices have not had as much attention, especially with regard to hardware heterogeneity. 
+Currently, if developers want to optimize the hardware allocation for their microservice, they have to manually profile it on different hardware platforms, potentially swapping out specialized libraries to take advantage of local accelerators. 
+We aim to work toward a solution for this problem.
 
 \section{The Proposed Solution}
-We propose a system for automatically detecting when an operation within a microservice would benefit enough from offloading the operation to an on-chip accelerator to warrant migrating the microservice to different hardware. Microservices communicate profile statistics for different operations to a scheduler service that makes an allocation decision, reconfigures and recompiles the necessary microservices to run on the allocated new hardware, and redeploys the microservices. We propose a simple centralized scheduler for collecting telemetry and making the allocation decision.
+We propose a system for automatically detecting when an operation within a microservice would benefit enough from offloading the operation to an on-chip accelerator to warrant migrating the microservice to different hardware. 
+Microservices communicate profile statistics for different operations to a scheduler service that makes an allocation decision, reconfigures and recompiles the necessary microservices to run on the allocated new hardware, and redeploys the microservices. 
+We propose a simple centralized scheduler for collecting telemetry and making the allocation decision.
 
 \section{Design and Implementation}
-To simplify the problem, we focus on just the operation of (de)compression. We will instrument a microservice in a recently proposed framework called Blueprint~\cite{anand2023blueprint}, which allows for easy microservice reconfiguration, and we will collect telemetry on the operation sizes for (de)compression. We will offload (de)compression on Intel's In-Memory Analytics Accelerator (IAA).
+To simplify the problem, we focus on just the operation of (de)compression. 
+We will instrument a microservice in a recently proposed framework called Blueprint~\cite{anand2023blueprint}, which allows for easy microservice reconfiguration, and we will collect telemetry on the operation sizes for (de)compression. 
+We will offload (de)compression on Intel's In-Memory Analytics Accelerator (IAA).
 
-When choosing service boundaries in an application architected as a collection of microservices, there is a tradeoff between splitting off a portion of the application as a distinct microservice and the incurred latency from the additional network communication. We will characterize this tradeoff in the presence of a compression accelerator (Intel's IAA) by developing a toy microservice---a compressed object cache---and measuring the end-to-end latency, system throughput, and CPU utilization as we sweep static object sizes. We will run this experiment for three different configurations: the monolithic application without (de)compression acceleration, the monolithic application with (de)compression acceleration, and a microservice configuration with a (de)compression service running with acceleration which is accessed remotely by the cache microservice (Redis). Given an additional artificial network delay of 15~$\mu$s to better model real-world data center deployments, we expect there to be a certain object size for which the benefit of compression acceleration outweighs the cost of traversing the network for a remote call to the service. After collecting the results, we can identify this tradeoff point and use it to program a rule in the centralized scheduler to redeploy the application with a remote compression microservice if the operation size telemetry signals a potential benefit.
+When choosing service boundaries in an application architected as a collection of microservices, there is a tradeoff between splitting off a portion of the application as a distinct microservice and the incurred latency from the additional network communication. 
+We will characterize this tradeoff in the presence of a compression accelerator (Intel's IAA) by developing a toy microservice---a compressed object cache---and measuring the end-to-end latency, system throughput, and CPU utilization as we sweep static object sizes. 
+
+We will run this experiment for three different configurations: the monolithic application without (de)compression acceleration, the monolithic application with (de)compression acceleration, and a microservice configuration with a (de)compression service running with acceleration which is accessed remotely by the cache microservice (memcached). 
+We will analyze how different network latencies affect the tradeoff point, where the benefit of compression acceleration outweighs the cost of traversing the network for a remote call to the service.
+After collecting the results, we can identify this tradeoff point and use it to program a rule in the centralized scheduler to redeploy the application with a remote compression microservice if the operation size telemetry signals a potential benefit.
 
 Our final artifact will include the following:
 \begin{itemize}
@@ -37,6 +57,20 @@ Our final artifact will include the following:
     \item Telemetry code for monitoring (de)compression operation size.
     \item Scheduler code for polling telemetry information and choosing to reconfigure and redeploy the application.
 \end{itemize}
+
+\section{Project Progress}
+
+We have made significant progress on the project so far. 
+We spent substantial time getting familiar with Blueprint and reading through example microservices, but are now making good progress on the implementation.
+\begin{itemize}
+    \item We have implemented all of the Blueprint workflow code except for the actual calls to the compression library.
+    \item We are currently implementing the Blueprint plugin code to wrap Intel's QPL library by implementing a C shim layer and using Go's FFI to call the shim layer.
+    \item We have implemented the scaffolding code for building the application as a single process or as separate Docker containers communicating over gRPC.
+    \item We have yet to implement the code to run the experiments and collect measurements.
+    \item We have yet to implement the telemetry code for monitoring (de)compression operation size.
+    \item We have yet to implement the scheduler code for polling telemetry information and making allocation decisions.
+\end{itemize}
+For our evaluation, we will be running on two Intel Sapphire Rapids servers, one with the IAA enabled and one without.
 
 \bibliographystyle{plain}
 \bibliography{references}
