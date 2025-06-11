@@ -27,7 +27,7 @@ uint32_t get_safe_compression_buffer_size(uint32_t src_size)
     return qpl_get_safe_deflate_compression_buffer_size(src_size);
 }
 
-int compress_software(const uint8_t *src, uint8_t *dst, uint32_t src_size,
+int compress_software(uint8_t *src, uint8_t *dst, uint32_t src_size,
 		      uint32_t dst_size)
 {
     qpl_status status;
@@ -41,7 +41,7 @@ int compress_software(const uint8_t *src, uint8_t *dst, uint32_t src_size,
         return -1;
     }
 
-    status = qpl_init_job(sw, job);
+    status = qpl_init_job(path, job);
     if (status != QPL_STS_OK) {
         return -1;
     }
