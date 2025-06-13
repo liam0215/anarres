@@ -1,4 +1,4 @@
-package compress
+package qpl
 
 /*
 #cgo CPPFLAGS: -I./qpl/install/include

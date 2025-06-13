@@ -1,4 +1,4 @@
-package compress
+package qpl
 
 import (
 	"bytes"

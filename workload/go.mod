@@ -4,7 +4,7 @@ go 1.23.1
 
 replace github.com/liam0215/anarres/workflow => ../workflow
 
-require github.com/liam0215/anarres/workflow v0.0.0-00010101000000-000000000000
+replace github.com/liam0215/anarres/runtime => ../runtime
 
 require (
 	github.com/blueprint-uservices/blueprint/runtime v0.0.0-20250525092121-5eadb0c0735e // indirect

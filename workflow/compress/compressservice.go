@@ -2,6 +2,7 @@ package compress
 
 import (
 	"context"
+	"github.com/liam0215/anarres/runtime/core/backend"
 	"github.com/pkg/errors"
 )
 
@@ -15,11 +16,15 @@ type (
 	}
 )
 
-type compressImpl struct{}
+type compressImpl struct {
+	compressLib backend.Compression
+}
 
 // Instantiates the Frontend service, which makes calls to the compress service
-func NewCompressService(ctx context.Context) (CompressService, error) {
-	c := &compressImpl{}
+func NewCompressService(ctx context.Context, compressLib backend.Compression) (CompressService, error) {
+	c := &compressImpl{
+		compressLib: compressLib,
+	}
 	return c, nil
 }
 
@@ -29,7 +34,7 @@ func (c *compressImpl) Compress(ctx context.Context, value string) ([]byte, erro
 		return []byte(""), errors.New("CompressService.Compress value cannot be empty")
 	}
 
-	comp, err := Compress([]byte(value))
+	comp, err := c.compressLib.Compress(ctx, []byte(value))
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +48,7 @@ func (c *compressImpl) Decompress(ctx context.Context, value []byte, decompresse
 		return "", errors.New("CompressService.Decompress value cannot be empty")
 	}
 
-	dec, err := Decompress(value, decompressedLen)
+	dec, err := c.compressLib.Decompress(ctx, value, decompressedLen)
 	if err != nil {
 		panic(err)
 	}

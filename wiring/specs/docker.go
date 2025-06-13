@@ -9,12 +9,14 @@ import (
 	"github.com/blueprint-uservices/blueprint/plugins/grpc"
 	"github.com/blueprint-uservices/blueprint/plugins/http"
 	"github.com/blueprint-uservices/blueprint/plugins/linuxcontainer"
-	"github.com/blueprint-uservices/blueprint/plugins/memcached"
+	"github.com/blueprint-uservices/blueprint/plugins/simple"
+	// "github.com/blueprint-uservices/blueprint/plugins/memcached"
 	// "github.com/blueprint-uservices/blueprint/plugins/opentelemetry"
 	"github.com/blueprint-uservices/blueprint/plugins/retries"
 	"github.com/blueprint-uservices/blueprint/plugins/workflow"
 	"github.com/blueprint-uservices/blueprint/plugins/workload"
 	// "github.com/blueprint-uservices/blueprint/plugins/zipkin"
+	"github.com/liam0215/anarres/plugins/qpl"
 	"github.com/liam0215/anarres/workflow/compress"
 	"github.com/liam0215/anarres/workflow/frontend"
 	"github.com/liam0215/anarres/workload/workloadgen"
@@ -54,10 +56,12 @@ func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
 		gotests.Test(spec, serviceName)
 	}
 
-	compress_service := workflow.Service[compress.CompressService](spec, "compress_service")
+	compression := qpl.Compression(spec, "qpl")
+	compress_service := workflow.Service[compress.CompressService](spec, "compress_service", compression)
 	applyDockerDefaults(compress_service)
 
-	cache := memcached.Container(spec, "cache")
+	// cache := memcached.Container(spec, "cache")
+	cache := simple.Cache(spec, "cache")
 	frontend_service := workflow.Service[frontend.Frontend](spec, "frontend", compress_service, cache)
 	applyDockerDefaults(frontend_service)
 
