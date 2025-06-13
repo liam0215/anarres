@@ -1,0 +1,49 @@
+
+version: '3'
+services:
+
+  cache_ctr:
+    image: memcached
+    hostname: cache_ctr
+    expose:
+     - "11211"
+    ports:
+     - "${CACHE_BIND_ADDR?cache.bind_addr must be set by the calling environment}:11211"
+    restart: always
+    cpuset: "21,23,25,27,29,31,33,35"
+
+  compress_ctr:
+    build:
+      context: compress_ctr
+      dockerfile: ./Dockerfile
+    hostname: compress_ctr
+    expose:
+     - "12345"
+    ports:
+     - "${COMPRESS_SERVICE_GRPC_BIND_ADDR?compress_service.grpc.bind_addr must be set by the calling environment}:12345"
+    environment:
+     - COMPRESS_SERVICE_GRPC_BIND_ADDR=0.0.0.0:12345
+    restart: always
+    devices:
+     - /dev/iax:/dev/iax
+    device_cgroup_rules:
+      - 'c 236:* rmw'
+    cap_add:
+     - SYS_ADMIN
+    cpuset: "5,7,9,11,13,15,17,19"
+
+  frontend_ctr:
+    build:
+      context: frontend_ctr
+      dockerfile: ./Dockerfile
+    hostname: frontend_ctr
+    expose:
+     - "12345"
+    ports:
+     - "${FRONTEND_GRPC_BIND_ADDR?frontend.grpc.bind_addr must be set by the calling environment}:12345"
+    environment:
+     - CACHE_DIAL_ADDR=cache_ctr:11211
+     - COMPRESS_SERVICE_GRPC_DIAL_ADDR=compress_ctr:12345
+     - FRONTEND_GRPC_BIND_ADDR=0.0.0.0:12345
+    restart: always
+    cpuset: "21,23,25,27,29,31,33,35"

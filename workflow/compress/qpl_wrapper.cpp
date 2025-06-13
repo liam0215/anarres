@@ -11,6 +11,25 @@
 
 #include <iostream>
 
+void setup_qpl_job(qpl_job *job, uint8_t *src, uint8_t *dst, uint32_t src_size,
+		   uint32_t dst_size, qpl_operation op)
+{
+    // We need to explicitly declare that only the current numa node's
+    // accelerator should be used: qpl_job *qpl_job_ptr; job->numa_id = -2; 
+    job->numa_id = -2;
+    job->op = op;
+    job->level = qpl_default_level;
+    job->next_in_ptr = src;
+    job->next_out_ptr = dst;
+    job->available_in = src_size;
+    job->available_out = dst_size;
+    uint32_t compression_flag =
+	(op == qpl_op_compress) * QPL_FLAG_DYNAMIC_HUFFMAN;
+
+    job->flags = QPL_FLAG_FIRST | QPL_FLAG_LAST | QPL_FLAG_OMIT_VERIFY |
+		 compression_flag;
+}
+
 qpl_status qpl_compress_wrapper(uint8_t *src,
                                 uint32_t src_len,
                                 uint8_t **dst,
@@ -47,13 +66,7 @@ qpl_status qpl_compress_wrapper(uint8_t *src,
     // Performing a compression operation
     uint8_t *out_buf = (uint8_t *)malloc(compression_size);
 
-    job->op = qpl_op_compress;
-    job->level = qpl_default_level;
-    job->next_in_ptr = src;
-    job->next_out_ptr = out_buf;
-    job->available_in = src_len;
-    job->available_out = compression_size;
-    job->flags = QPL_FLAG_FIRST | QPL_FLAG_LAST | QPL_FLAG_DYNAMIC_HUFFMAN | QPL_FLAG_OMIT_VERIFY;
+    setup_qpl_job(job, src, out_buf, src_len, compression_size, qpl_op_compress);
 
     // Compression
     status = qpl_execute_job(job);

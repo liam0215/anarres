@@ -8,16 +8,14 @@ import (
 type (
 	CompressService interface {
 		// Compress value and return it
-		Compress(ctx context.Context, value string) (string, error)
+		Compress(ctx context.Context, value string) ([]byte, error)
 
 		// Decompress value and return it
-		Decompress(ctx context.Context, value string) (string, error)
+		Decompress(ctx context.Context, value []byte, decompressedLen int) (string, error)
 	}
 )
 
-type compressImpl struct {
-	// TODO: add compress library instance here?
-}
+type compressImpl struct{}
 
 // Instantiates the Frontend service, which makes calls to the compress service
 func NewCompressService(ctx context.Context) (CompressService, error) {
@@ -26,23 +24,29 @@ func NewCompressService(ctx context.Context) (CompressService, error) {
 }
 
 // Compress implements CompressService.
-func (c *compressImpl) Compress(ctx context.Context, value string) (string, error) {
+func (c *compressImpl) Compress(ctx context.Context, value string) ([]byte, error) {
 	if value == "" {
-		return "", errors.New("CompressService.Compress value cannot be empty")
+		return []byte(""), errors.New("CompressService.Compress value cannot be empty")
 	}
 
-	// TODO: Implement calls to qpl wrapper
+	comp, err := Compress([]byte(value))
+	if err != nil {
+		panic(err)
+	}
 
-	return value, nil
+	return comp, nil
 }
 
 // Decompress implements CompressService.
-func (c *compressImpl) Decompress(ctx context.Context, value string) (string, error) {
-	if value == "" {
+func (c *compressImpl) Decompress(ctx context.Context, value []byte, decompressedLen int) (string, error) {
+	if len(value) == 0 {
 		return "", errors.New("CompressService.Decompress value cannot be empty")
 	}
 
-	// TODO: Implement calls to qpl wrapper
+	dec, err := Decompress(value, decompressedLen)
+	if err != nil {
+		panic(err)
+	}
 
-	return value, nil
+	return string(dec), nil
 }
