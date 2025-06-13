@@ -1,0 +1,4 @@
+\section{Design}
+We propose a system for automatically detecting when an operation within a microservice would benefit enough from offloading the operation to an on-chip accelerator to warrant migrating the microservice to different hardware.
+Microservices communicate profile statistics for different operations to a scheduler service that makes an allocation decision, reconfigures and recompiles the necessary microservices to run on the allocated new hardware, and redeploys the microservices.
+We propose a simple centralized scheduler for collecting telemetry and making the allocation decision.

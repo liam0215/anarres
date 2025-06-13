@@ -1,0 +1,13 @@
+\section{Introduction}
+
+In 2015, Google published a paper characterizing the problem of the ``datacenter tax,'' in which they profiled thousands of machines over a three-year period to find that nearly 30\% of all cycles in the fleet belonged to just a handful of low-level operations~\cite{kanev2015profiling}.
+This discovery, paired with the end of Dennard scaling and the subsequent slowdown in the improvement of single thread performance, led to a decade of increased interest in low latency ``on-chip'' accelerators that are better suited for offloading small granularity datacenter tax operations.
+
+For example, Intel's Sapphire Rapids CPUs introduced such accelerators for operations such as memory copy and fill, (de)compression, and de/encryption~\cite{yuan2024intel}.
+Along with other forms of CPU heterogeneity, like the presence of energy-efficient cores and performance cores, this has led to increased complexity when choosing on which hardware to deploy an application.
+For example, an application with insufficient instruction-level parallelism that is often stalled on accesses to memory may be better placed on efficiency cores; in contrast, an application with more instructions per cycle would be better off running on performance cores~\cite{kanev2015profiling}.
+Scheduling applications on heterogeneous hardware is not a new problem; it is a hot topic in machine learning research~\cite{narayanan2023hetero,subramanya2023sia}.
+
+However, general-purpose applications like microservices have not had as much attention, especially with regard to hardware heterogeneity.
+Currently, if developers want to optimize the hardware allocation for their microservice, they have to manually profile it on different hardware platforms, potentially swapping out specialized libraries to take advantage of local accelerators.
+We aim to work toward a solution for this problem.
