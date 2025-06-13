@@ -23,6 +23,7 @@ services:
      - "${COMPRESS_SERVICE_GRPC_BIND_ADDR?compress_service.grpc.bind_addr must be set by the calling environment}:12345"
     environment:
      - COMPRESS_SERVICE_GRPC_BIND_ADDR=0.0.0.0:12345
+     - JAEGER_DIAL_ADDR=jaeger_ctr:14268
     restart: always
     devices:
      - /dev/iax:/dev/iax
@@ -45,5 +46,17 @@ services:
      - CACHE_DIAL_ADDR=cache_ctr:11211
      - COMPRESS_SERVICE_GRPC_DIAL_ADDR=compress_ctr:12345
      - FRONTEND_GRPC_BIND_ADDR=0.0.0.0:12345
+     - JAEGER_DIAL_ADDR=jaeger_ctr:14268
     restart: always
     cpuset: "21,23,25,27,29,31,33,35"
+
+  jaeger_ctr:
+    image: jaegertracing/all-in-one:latest
+    hostname: jaeger_ctr
+    expose:
+     - "14268"
+     - "16686"
+    ports:
+     - "${JAEGER_BIND_ADDR?jaeger.bind_addr must be set by the calling environment}:14268"
+     - "${JAEGER_UI_BIND_ADDR?jaeger.ui.bind_addr must be set by the calling environment}:16686"
+    restart: always

@@ -11,12 +11,13 @@ import (
 	"github.com/blueprint-uservices/blueprint/plugins/linuxcontainer"
 	"github.com/blueprint-uservices/blueprint/plugins/memcached"
 	// "github.com/blueprint-uservices/blueprint/plugins/simple"
-	// "github.com/blueprint-uservices/blueprint/plugins/opentelemetry"
+	"github.com/blueprint-uservices/blueprint/plugins/opentelemetry"
 	"github.com/blueprint-uservices/blueprint/plugins/retries"
 	"github.com/blueprint-uservices/blueprint/plugins/workflow"
 	"github.com/blueprint-uservices/blueprint/plugins/workload"
-	// "github.com/blueprint-uservices/blueprint/plugins/zipkin"
+	"github.com/blueprint-uservices/blueprint/plugins/jaeger"
 	"github.com/liam0215/anarres/plugins/qpl"
+	"github.com/liam0215/anarres/plugins/prometheus"
 	"github.com/liam0215/anarres/workflow/compress"
 	"github.com/liam0215/anarres/workflow/frontend"
 	"github.com/liam0215/anarres/workload/workloadgen"
@@ -33,15 +34,15 @@ var Docker = cmdbuilder.SpecOption{
 }
 
 func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
+	metric_collector := prometheus.Collector(spec, "prometheus")
 	// Define the trace collector, which will be used by all services
-	// trace_collector := zipkin.Collector(spec, "zipkin")
+	// trace_collector := jaeger.Collector(spec, "jaeger")
 
 	// Modifiers that will be applied to all services
 	applyDockerDefaults := func(serviceName string, useHTTP ...bool) {
 		// Golang-level modifiers that add functionality
 		retries.AddRetries(spec, serviceName, 3)
 		clientpool.Create(spec, serviceName, 10)
-		// opentelemetry.Instrument(spec, serviceName, trace_collector)
 		if len(useHTTP) > 0 && useHTTP[0] {
 			http.Deploy(spec, serviceName)
 		} else {
@@ -58,6 +59,7 @@ func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
 
 	compression := qpl.Compression(spec, "qpl")
 	compress_service := workflow.Service[compress.CompressService](spec, "compress_service", compression)
+	opentelemetry.Instrument(spec, compress_service, metric_collector)
 	applyDockerDefaults(compress_service)
 
 	cache := memcached.Container(spec, "cache")
