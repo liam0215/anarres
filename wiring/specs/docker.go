@@ -9,8 +9,8 @@ import (
 	"github.com/blueprint-uservices/blueprint/plugins/grpc"
 	"github.com/blueprint-uservices/blueprint/plugins/http"
 	"github.com/blueprint-uservices/blueprint/plugins/linuxcontainer"
-	"github.com/blueprint-uservices/blueprint/plugins/simple"
-	// "github.com/blueprint-uservices/blueprint/plugins/memcached"
+	"github.com/blueprint-uservices/blueprint/plugins/memcached"
+	// "github.com/blueprint-uservices/blueprint/plugins/simple"
 	// "github.com/blueprint-uservices/blueprint/plugins/opentelemetry"
 	"github.com/blueprint-uservices/blueprint/plugins/retries"
 	"github.com/blueprint-uservices/blueprint/plugins/workflow"
@@ -60,8 +60,8 @@ func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
 	compress_service := workflow.Service[compress.CompressService](spec, "compress_service", compression)
 	applyDockerDefaults(compress_service)
 
-	// cache := memcached.Container(spec, "cache")
-	cache := simple.Cache(spec, "cache")
+	cache := memcached.Container(spec, "cache")
+	// cache := simple.Cache(spec, "cache")
 	frontend_service := workflow.Service[frontend.Frontend](spec, "frontend", compress_service, cache)
 	applyDockerDefaults(frontend_service)
 

@@ -1,5 +1,4 @@
-github.com/blueprint-uservices/blueprint/runtime v0.0.0-20250525092121-5eadb0c0735e h1:sIsPdahCqS6mlqtMTfcc4Glr5IMsM4MBzX7SSG9pugE=
-github.com/blueprint-uservices/blueprint/runtime v0.0.0-20250525092121-5eadb0c0735e/go.mod h1:ffx3ZBihZJnGOxF+2+bJ8YQjFQwgCrcuSKZ6tu0beWU=
+github.com/blueprint-uservices/blueprint/runtime v0.0.0-20250528164249-772aced0559e h1:vB4NqZLGerjesrfX+FHFulMpZsGUUXjhNR7NiHVDKsE=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

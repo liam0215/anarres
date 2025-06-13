@@ -3,7 +3,7 @@ module github.com/liam0215/anarres/tests
 go 1.23.1
 
 require (
-	github.com/blueprint-uservices/blueprint/runtime v0.0.0-20250525092121-5eadb0c0735e
+	github.com/blueprint-uservices/blueprint/runtime v0.0.0-20250528164249-772aced0559e
 	github.com/stretchr/testify v1.10.0
 )
 

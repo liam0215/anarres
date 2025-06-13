@@ -26,7 +26,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.26.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.26.0 // indirect
 	go.opentelemetry.io/otel/metric v1.36.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.34.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.36.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
@@ -44,5 +44,3 @@ replace github.com/liam0215/anarres/tests => ../tests
 replace github.com/liam0215/anarres/workload => ../workload
 
 replace github.com/liam0215/anarres/plugins => ../plugins
-
-replace github.com/liam0215/anarres/runtime => ../runtime
