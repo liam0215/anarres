@@ -34,7 +34,7 @@ func TestCompressService(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try decompressing the value
-	decompressedVal, err := compressService.Decompress(ctx, compressedVal)
+	decompressedVal, err := compressService.Decompress(ctx, compressedVal, len(val))
 	require.NoError(t, err)
 
 	require.Equal(t, decompressedVal, val)

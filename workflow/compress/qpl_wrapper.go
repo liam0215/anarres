@@ -1,8 +1,8 @@
 package compress
 
 /*
-#cgo CPPFLAGS: -I/opt/qpl/include
-#cgo LDFLAGS: -L/opt/qpl/lib -lqpl
+#cgo CPPFLAGS: -I./qpl/install/include
+#cgo LDFLAGS: -L./qpl/install/lib -lqpl
 #include "qpl_wrapper.h"
 #include <stdlib.h>
 */
@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"unsafe"
 )
+
+const qpl_path = C.qpl_path_hardware
 
 // Compress calls the QPL compression wrapper function in C.
 // Note: the buffer must not contain any Go pointers, as it is passed directly to C.
@@ -29,7 +31,7 @@ func Compress(buffer []byte) ([]byte, error) {
 		C.uint32_t(len(buffer)),
 		&cOut,
 		&cOutLen,
-		C.qpl_path_auto,
+		qpl_path,
 	)
 	if status != C.QPL_STS_OK {
 		return nil, fmt.Errorf("compression failed: %d", status)
@@ -57,7 +59,7 @@ func Decompress(buffer []byte, expectedLen int) ([]byte, error) {
 		C.uint32_t(expectedLen),
 		&cOut,
 		&cOutLen,
-		C.qpl_path_auto,
+		qpl_path,
 	)
 	if status != C.QPL_STS_OK {
 		return nil, fmt.Errorf("decompression failed: %d", status)

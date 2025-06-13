@@ -4,7 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"strconv"
+	"io"
+	"os"
+	// "strconv"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/liam0215/anarres/workflow/frontend"
@@ -23,38 +27,86 @@ type workloadGen struct {
 	frontend frontend.Frontend
 }
 
-var myarg = flag.Int("myarg", 12345, "help message for myarg")
+var sizeKb = flag.Int("sizeKb", 64, "Size of value in KB")
+var numWorkers = flag.Int("numWorkers", 2, "Number of workers to send requests in parallel")
 
 func NewSimpleWorkload(ctx context.Context, frontend frontend.Frontend) (SimpleWorkload, error) {
 	return &workloadGen{frontend: frontend}, nil
 }
 
 func (s *workloadGen) Run(ctx context.Context) error {
-	fmt.Printf("myarg is %v\n", *myarg)
-	value := 0
-	err := s.frontend.Put(ctx, strconv.Itoa(*myarg), strconv.Itoa(value))
+	var reqCount uint64
+
+	f, err := os.Open("xml")
 	if err != nil {
-		return fmt.Errorf("error putting item: %w", err)
+		return fmt.Errorf("failed to open xml file: %w", err)
 	}
-	ticker := time.NewTicker(1 * time.Second)
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case t := <-ticker.C:
-			fmt.Println("Tick at", t)
-			val, err := s.frontend.Get(ctx, strconv.Itoa(*myarg))
-			if err != nil {
-				return err
-			}
-			fmt.Println("Key: ", *myarg, ", Value: ", val)
-			value++
-			err = s.frontend.Put(ctx, strconv.Itoa(*myarg), strconv.Itoa(value))
-			if err != nil {
-				return fmt.Errorf("error putting item: %w", err)
+	defer f.Close()
+
+	limited := io.LimitReader(f, int64(*sizeKb)*1024)
+
+	buf, err := io.ReadAll(limited)
+	if err != nil {
+		return fmt.Errorf("failed to read from xml: %w", err)
+	}
+
+	payload := string(buf)
+	fmt.Printf("Using payload of size %d bytes\n", len(payload))
+
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				// swap out and reset the counter
+				c := atomic.SwapUint64(&reqCount, 0)
+				fmt.Printf("→ Throughput: %d req/s\n", c)
 			}
 		}
+	}()
+
+	var wg sync.WaitGroup
+	wg.Add(*numWorkers)
+	for id := 0; id < *numWorkers; id++ {
+		// key := strconv.Itoa(id)
+		key := fmt.Sprintf("key-%d", id)
+		if err := s.frontend.Put(ctx, key, payload); err != nil {
+			return fmt.Errorf("priming client definitions: %w", err)
+		}
+
+		go func(workerID int) {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					err := s.frontend.Put(ctx, key, payload)
+					if err != nil {
+						fmt.Printf("[worker %d] Put error: %v", workerID, err)
+						return
+					}
+					val, err := s.frontend.Get(ctx, key)
+					if err != nil {
+						fmt.Printf("[worker %d] Get error: %v", workerID, err)
+						return
+					}
+					if val != payload {
+						fmt.Printf("[worker %d] Get returned unexpected value: %s != %s", workerID, val, payload)
+						return
+					}
+					atomic.AddUint64(&reqCount, 2)
+				}
+			}
+		}(id)
 	}
+
+	<-ctx.Done()
+	wg.Wait()
+	return nil
 }
 
 func (s *workloadGen) ImplementsSimpleWorkload(context.Context) error {
