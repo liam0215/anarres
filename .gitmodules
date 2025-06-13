@@ -1,3 +1,3 @@
-[submodule "workflow/compress/qpl"]
-	path = workflow/compress/qpl
+[submodule "runtime/plugins/qpl/qpl"]
+	path = runtime/plugins/qpl/qpl
 	url = git@github.com:liam0215/qpl.git
