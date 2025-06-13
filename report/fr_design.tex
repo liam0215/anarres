@@ -10,3 +10,80 @@ We will characterize this tradeoff in the presence of a compression accelerator 
 We will run this experiment for three different configurations: the monolithic application without (de)compression acceleration, the monolithic application with (de)compression acceleration, and a microservice configuration with a (de)compression service running with acceleration which is accessed remotely by the cache microservice (memcached).
 We will analyze how different network latencies affect the tradeoff point, where the benefit of compression acceleration outweighs the cost of traversing the network for a remote call to the service.
 After collecting the results, we can identify this tradeoff point and use it to program a rule in the centralized scheduler to redeploy the application with a remote compression microservice if the operation size telemetry signals a potential benefit.
+
+\subsection{Microservice System Architecture}
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}[
+      node distance=2cm,
+      box/.style={draw, rectangle, minimum width=5cm, minimum height=1cm, align=center},
+      >=latex
+    ]
+    \node[box] (scheduler) {Centralized\\Scheduler};
+    \node[box, below=2cm of scheduler] (ms) {Compression/Decompression\\ Microservice};
+    \node[box, below=2cm of ms] (accel) {CPU or\\IAA Accelerator};
+
+    \draw[->] ([xshift=-5mm]scheduler.south) -- node[left]{Tasks} ([xshift=-5mm]ms.north);
+    \draw[->] ([xshift=+5mm]ms.north) -- node[right,align=center]{Results \\ \& Telemetry} ([xshift=+5mm]scheduler.south);
+
+    \draw[->]
+      ([xshift=-5mm]ms.south) --
+      node[left]{Requests}
+      ([xshift=-5mm]accel.north);
+
+    \draw[->]
+      ([xshift=+5mm]accel.north) --
+      node[right]{Responses}
+      ([xshift=+5mm]ms.south);
+  \end{tikzpicture}
+  \caption{Microservice System Architecture}
+  \label{fig:system_architecture}
+\end{figure}
+
+Our system is comprised of three main components, as shown in \autoref{fig:system_architecture}:
+
+\begin{itemize}
+    \item Compression/Decompression Microservices: Each service is built atop the Blueprint framework, and accepts (de)compression requests from clients. They are instrumented with lightweight telemetry agents that tag each (de)compression invocation with metadata.
+    \item Centralized Scheduler: Polls telemetry from all agents, maintains a global view of workload characteristics and hardware inventory, and computes scheduling or migration decisions.
+    \item CPU or IAA Accelerators: Some microservices are ran atop of Intel In-Memory Analytics Accelerator (IAA) for high-throughput (de)compression, while others run on standard CPUs with accelerator disabled to simulate deployments on machine without IAA.
+\end{itemize}
+
+\subsection{Microservice Design}
+
+The Blueprint framework provides a convenient way to build microservices with minimal boilerplate.
+Communicates via gRPC, it allows for easy service discovery and dynamic reconfiguration.
+
+\subsubsection{Communication with IAA Accelerator}
+
+We extend Blueprint with a plugin to wrap Intel's QPL library for utilizing the IAA.
+
+uses Go's Foreign Function Interface (FFI) to call the IAA's native APIs for (de)compression operations.
+
+If the IAA is not present, it will fall back to software (de)compression primitives.
+
+\subsection{Telemetry Reporting}
+
+To make informed decisions, we collect the following metrics for each (de)compression operation:
+
+op size.
+
+
+\subsection{Scheduler Design}
+
+we implement a centralized scheduler that periodically polls telemetry from all microservices and makes decisions based on the collected data.
+
+The scheduler maintains a global view of all microservices and their average operation sizes.
+
+The scheduler allows users to specify a break-even threshold for operation size, which determines when to offload a (de)compression operation to the IAA.
+If the average operation size exceeds this threshold, the scheduler will trigger a migration workflow to reconfigure and redeploy the affected microservice.
+
+We currently use a centralized scheduler for simplicity and global optimization.
+In large clusters, however, a distributed scheduler---where many local coordinator makes decisions based on local telemetry and peers---could avoid a single point of failure, reduce latency, and scale more effectively.
+We leave this distributed design for future exploration.
+
+\subsection{Migration Workflow}
+
+Kubernetes provides a convenient way to manage containerized applications, and we will leverage it for our migration workflow.
+
+destroy and recreate the microservice container with the new configuration.
