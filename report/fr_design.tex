@@ -51,28 +51,28 @@ Our system is comprised of three main components, as shown in \autoref{fig:syste
 
 \subsection{Microservice Design}
 
-The Blueprint framework provides a convenient way to build microservices with minimal boilerplate.
-Communicates via gRPC, it allows for easy service discovery and dynamic reconfiguration.
+The Blueprint framework provides a convenient way to build microservices with minimal boilerplate code, and allows for easy service discovery and dynamic reconfiguration.
+The microservices are designed as \texttt{workflows} in the Blueprint framework, where they are defined as a service that accepts RPC calls to comduct the business logic.
+They are then containerized and deployed as Kubernetes pods through the \texttt{wiring} definitions.
+
+In our design, the microservices can be configured to use either the CPU or the IAA accelerator for (de)compression operations.
+They receive bytes to be compressed or decompressed, which are serialized as a string field, via gRPC.
+The services then call the (de)compression functions, either using the CPU or the IAA, and return the result back to the client again via gRPC.
 
 \subsubsection{Communication with IAA Accelerator}
 
-We extend Blueprint with a plugin to wrap Intel's QPL library for utilizing the IAA.
-
-uses Go's Foreign Function Interface (FFI) to call the IAA's native APIs for (de)compression operations.
-
-If the IAA is not present, it will fall back to software (de)compression primitives.
+We extend Blueprint with a plugin to wrap Intel's QPL library \cite{intelIntelQpl2025} for utilizing the IAA.
+We use Go's Foreign Function Interface (FFI) to call the IAA's native APIs for (de)compression operations.
+If the IAA is not present, it will fall back to software (de)compression using largely the same code but without invoking the accelerator.
 
 \subsection{Telemetry Reporting}
 
-To make informed decisions, we collect the following metrics for each (de)compression operation:
-
-op size.
-
+To make informed decisions, we collect the operation size for each (de)compression operation and make the microservices stateful.
+We also implement a RPC interface that allows the scheduler to query the operation size for each microservice while they are running.
 
 \subsection{Scheduler Design}
 
-we implement a centralized scheduler that periodically polls telemetry from all microservices and makes decisions based on the collected data.
-
+We created a simple centralized scheduler that periodically polls telemetry from all microservices and makes decisions based on the collected data.
 The scheduler maintains a global view of all microservices and their average operation sizes.
 
 The scheduler allows users to specify a break-even threshold for operation size, which determines when to offload a (de)compression operation to the IAA.
@@ -84,6 +84,12 @@ We leave this distributed design for future exploration.
 
 \subsection{Migration Workflow}
 
-Kubernetes provides a convenient way to manage containerized applications, and we will leverage it for our migration workflow.
 
-destroy and recreate the microservice container with the new configuration.
+Migration is a hard problem in distributed systems, especially when it comes to microservices.
+The service should remain its availability and consistency during the migration process, and the internal states should either be preserved or reconstructed on the new instance post migration.
+For this project, we try not to let the above issues to be a blocker, and instead pretend that the migration is a simple operation that can be done in a few steps:
+\begin{enumerate}
+  \item The scheduler identifies a microservie that is beneficial to migrated based on the telemetry data and its break-even threshold.
+  \item The scheduler routes a request to Kubernetes to destroy the existing microservice container and recreate it with the new configuration (i.e., using IAA) on the machine with accelerator.
+  \item The scheduler waits for the new microservice to be ready and starts routing requests to it.
+\end{enumerate}
