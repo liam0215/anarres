@@ -1,13 +1,61 @@
 \section{Introduction}
 
+\subsection{Motivation}
+
+Data centers today pay a hidden ``tax'' on workloads from the inefficiencies of general-purpose hardware.
 In 2015, Google published a paper characterizing the problem of the ``datacenter tax,'' in which they profiled thousands of machines over a three-year period to find that nearly 30\% of all cycles in the fleet belonged to just a handful of low-level operations~\cite{kanev2015profiling}.
-This discovery, paired with the end of Dennard scaling and the subsequent slowdown in the improvement of single thread performance, led to a decade of increased interest in low latency ``on-chip'' accelerators that are better suited for offloading small granularity datacenter tax operations.
 
-For example, Intel's Sapphire Rapids CPUs introduced such accelerators for operations such as memory copy and fill, (de)compression, and de/encryption~\cite{yuan2024intel}.
-Along with other forms of CPU heterogeneity, like the presence of energy-efficient cores and performance cores, this has led to increased complexity when choosing on which hardware to deploy an application.
+
+\todo{we can list the low-level operations for more texts}
+
+Taken together, these costs translate into longer tail latencies, higher energy bills, and unnecessarily more computing resources to achieve the same level of performance.
+For many large-scale services, the majority of CPU cycles go toward these auxiliary tasks rather than the ``business logic'' itself.
+Meanwhile, the long-celebrated Dennard scaling story---where transistor shrinkage yielded proportional gains in frequency, power, and area---came to an end around the mid-2000s. Without power-density improvements to match, clock-frequency increases plateaued, and single-thread performance saw only incremental bump-by-bump gains.
+
+To continue driving performance, the industry began packing more specialized units (vector ALUs, GPUs, and domain-specific accelerators) onto the same die or system.
+% This discovery, paired with the end of Dennard scaling and the subsequent slowdown in the improvement of single thread performance, led to a decade of increased interest in
+These low latency ``on-chip'' accelerators are better suited for offloading small granularity datacenter tax operations.
+For example, Intel's Sapphire Rapids CPUs introduced the Intel In-line Accelerator (IAA) for operations such as memory copy and fill, (de)compression, and de/encryption~\cite{yuan2024intel}.
+
+Along with other forms of CPU heterogeneity, like the presence of energy-efficient cores and performance cores, the introduction of on-chip accelerators has led to increased complexity when choosing on which hardware to deploy an application.
 For example, an application with insufficient instruction-level parallelism that is often stalled on accesses to memory may be better placed on efficiency cores; in contrast, an application with more instructions per cycle would be better off running on performance cores~\cite{kanev2015profiling}.
-Scheduling applications on heterogeneous hardware is not a new problem; it is a hot topic in machine learning research~\cite{narayanan2023hetero,subramanya2023sia}.
 
-However, general-purpose applications like microservices have not had as much attention, especially with regard to hardware heterogeneity.
+In this project, we aim to present a preliminary study on the trade-off between the cost of offloading operations to specialized accelerators and the overhead of migrating workloads between different hardware cores.
+
+\subsection{Problem Statement}
+
+Scheduling applications on heterogeneous hardware is not a new problem; it is a hot topic in machine learning research~\cite{narayanan2023hetero,subramanya2023sia}.
+However, despite the growing wealth of hardware options, general-purpose applications like microservices have not had as much attention, especially with regard to hardware heterogeneity.
 Currently, if developers want to optimize the hardware allocation for their microservice, they have to manually profile it on different hardware platforms, potentially swapping out specialized libraries to take advantage of local accelerators.
-We aim to work toward a solution for this problem.
+
+Manual profiling also struggles to keep pace with real-world conditions.
+A service that is compression-bound under one workload might become serialization-bound under another, yet static tuning yielded by manual profiling cannot respond dynamically.
+The lack of a feedback loop between runtime telemetry and scheduling decisions means that many potential performance are at best underutilized and at worst completely missed.
+
+In this project, we aim to address the problem of scheduling microservices on heterogeneous hardware by designing a system that continuously profiles the cost of fine-grained operations within a microservice and informs real-time decisions on where to run those operations.
+
+
+\subsection{Contributions}
+
+We propose a system for automatically detecting when an operation within a microservice would benefit enough from offloading the operation to an on-chip accelerator to warrant migrating the microservice to different hardware.
+The system makes the following contributions:
+
+\begin{itemize}
+    \item Microservice Telemetry.
+
+    Microservices communicate profile statistics for different operations to a centralized scheduler service that makes an allocation decision.
+
+    \item Telemetry-driven Centralized Scheduler.
+
+    The scheduler service makes allocation decisions, reconfigures and recompiles the necessary microservices to run on the allocated new hardware, and redeploys the microservices.
+
+    \item Blueprint Plugin for IAA Acceleration.
+
+    We extend the blueprint microservice platform with a plugin that allows Go programs to invoke the Intel IAA for compression and decompression operations using native Intel IAA APIs.
+
+    \item Microbenchmarking Framework \& Tradeoff Analysis.
+
+    We build a suite of microbenchmarks to characterize network overhead versus accelerator invocation cost, giving insights into when offloading truly pays off.
+\end{itemize}
+
+With these pieces in place, our system closes the loop from telemetry to placement to execution, ensuring that microservices automatically exploit the full spectrum of compute resources available in modern servers.
