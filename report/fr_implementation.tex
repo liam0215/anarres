@@ -47,4 +47,10 @@ The offered load is configurable, and we measure the end-to-end latency as the o
 
 \subsection{Telemetry and Scheduler}
 
-\todo{gRPC. how scheduler polls. failed attempt to use opentelemetry and prometheus}
+We had initially designed the telemetry to be collected from the compression service using OpenTelemetry~\cite{otel} and Prometheus~\cite{prometheus}. 
+We implemented a plugin for Prometheus to collect the available OpenTelemetry metrics through Blueprint's existing OpenTelemetry integration. 
+However, due to a serious bug in the Prometheus plugin, we were unable to use it in our final implementation.
+Instead, we implemented barebones telemetry collection using gRPC, where the compression service exposes a gRPC interface to query the operation size and count.
+The scheduler polls the telemetry information from the compression service every second and logs the average operation size.
+We leave it for future work to implement a more robust telemetry collection and visualization system using OpenTelemetry and Prometheus.
+We also leave it for future work to implement a scheduler that can reconfigure and redeploy the application based on the telemetry information.
