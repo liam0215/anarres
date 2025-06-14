@@ -1,6 +1,6 @@
 \section{Related Works}
 
-In this section, we first review the sources of the “datacenter tax,” then survey prior work on CPU heterogeneity and hardware-aware scheduling, and finally discuss existing approaches to offloading (de)compression in microservice and big-data frameworks.
+In this section, we first review the sources of the “datacenter tax,” then survey prior work on CPU heterogeneity and hardware-aware scheduling, and finally discuss existing approaches to offloading microservices to accelerators in data center settings.
 
 \subsection{The Datacenter Tax}
 
@@ -35,19 +35,19 @@ This problem is not new; it has been studied in the context of both CPU and acce
 
 \subsubsection{Heterogeneous CPU Scheduling}
 
-Early work by \cite{menasceStaticDynamic1995} proposes and compares static and dynamic processor assignment in a single-ISA heterogeneous parallel architecture.
+Early work by Menasce et al. \cite{menasceStaticDynamic1995} proposes and compares static and dynamic processor assignment in a single-ISA heterogeneous parallel architecture.
 They introduce dynamic feedback policies that allow jobs to migrate between fast and slow processors based on their execution characteristics, improving overall utilization, and thus throughput and response time.
 However, their work relies on an idealized Markovian model of service times, and ignores the migration overheads and practical constraints of real-world systems.
 
-Building on this, \cite{ghiasiSchedulingHeterogeneous2005} targets server and cluster systems whose cores share an ISA but differ in voltage/frequency capabilities.
+Building on this, Ghiasi et al. \cite{ghiasiSchedulingHeterogeneous2005} targets server and cluster systems whose cores share an ISA but differ in voltage/frequency capabilities.
 They propose a run-time adaptive scheduler that monitors per-thread performance counters and dynamically map threads and reduce energy cost.
 
-Similarly, \cite{topcuogluTaskScheduling1999} statically schedules workloads on heterogeneous processors using a DAG.
+Similarly, Topcuoglu et al. \cite{topcuogluTaskScheduling1999} statically schedules workloads on heterogeneous processors using a DAG.
 Their HEFT (Heterogeneous Earliest Finish Time) and CPOP (Critical Path On a Processor) heuristics rank tasks by critical paths using a DAG and assign them to cores statically.
 However, the methodology requires an accurate a priori knowledge of task execution time, which may not be feasible in practice.
 Also, the static nature of the scheduling may not adapt well to dynamic workload changes.
 
-More recently, \cite{clarkProcessorAcceleration2003} proposes a fully automated framework using data flow graph.
+More recently, Clark et al. \cite{clarkProcessorAcceleration2003} proposes a fully automated framework using data flow graph.
 A compiler-driven dataflow-graph exploration engine identifies critical subgraphs, which are then offloaded to custom functional units integrated into the core pipeline.
 These instructions are then synthesized and accelerated while preserving ISA compatibility.
 However, their alleged automation still requires manual intervention and incurs extra verification overhead for correctness.
@@ -72,10 +72,9 @@ CoSA outperforms heuristic scheduling tools while reducing scheduling time.
 
 \subsection{Accelerator Offload for Microservices and Data Centers}
 
-In practice, offloading work from CPUs to accelerators is beginning to find its way into microservice and data‐center workflows, but only in proof-of-concept settings.
-Sriraman et al. introduce Accelerometer \cite{sriramanAccelerometerUnderstanding2020}, a predictive model that predicts realistic speedups when offloading common microservice building blocks at Facebook scale.
+There have also been some limited efforts to offload microservices to accelerators in data centers, but mostly as proofs of concept.
+For example, Sriraman et al. introduce Accelerometer \cite{sriramanAccelerometerUnderstanding2020}, a predictive model that predicts realistic speedups when offloading common microservice building blocks at Facebook scale.
 Similarly, Liu et al.'s E3 \cite{liuE3EnergyEfficient2019} extends Azure Service Fabric to offload whole microservices onto SmartNICs, demonstrating energy savings and performance improvements.
 
-Beyond these proofs of concept, there is a significant gap: no general-purpose scheduler seamlessly coordinates CPUs, GPUs, FPGAs, and SmartNICs across microservice workloads at data-center scale, leaving operators without unified policies for dynamic offload across diverse accelerator classes.
-
+Beyond these proofs of concept, there is a significant gap: there does not yet exist a general-purpose scheduler that coordinates microservice workloads across accelerators at data-center scale.
 Our work bridges these domains by combining fine-grained telemetry, centralized decision logic, and potential for migration using Kubernetes to automate the offload of (de)compression to hardware accelerators in microservice environments.

@@ -24,15 +24,14 @@ In this project, we aim to present a preliminary study on the trade-off between 
 \subsection{Problem Statement}
 
 Scheduling applications on heterogeneous hardware is not a new problem; it is a hot topic in machine learning research~\cite{narayanan2023hetero,subramanya2023sia}.
-However, despite the growing wealth of hardware options, general-purpose applications like microservices have not had as much attention, especially with regard to hardware heterogeneity.
+However, despite the growing heterogeneity of special purpose hardwares, general-purpose applications like microservices have not had as much attention, especially with regard to hardware heterogeneity.
 Currently, if developers want to optimize the hardware allocation for their microservice, they have to manually profile it on different hardware platforms, potentially swapping out specialized libraries to take advantage of local accelerators.
 
-Manual profiling also struggles to keep pace with real-world conditions.
-A service that is compression-bound under one workload might become serialization-bound under another, yet static tuning yielded by manual profiling cannot respond dynamically.
-The lack of a feedback loop between runtime telemetry and scheduling decisions means that many potential performance are at best underutilized and at worst completely missed.
+Manual profiling also struggles to keep up with the dynamic nature of changing workloads in production.
+For example, a microservice that is CPU-bound under one workload might become memory-bound under another, and thus would benefit from being migrated to a different hardware platform.
+The lack of a feedback loop between runtime telemetry and scheduling decisions means that many potential performance are at best underutilized and at worst wasted.
 
-In this project, we aim to address the problem of scheduling microservices on heterogeneous hardware by designing a system that continuously profiles the cost of fine-grained operations within a microservice and informs real-time decisions on where to run those operations.
-
+In this project, we aim to address the problem of scheduling microservices on heterogeneous hardware by designing a system that continuously profiles the cost of operations within a microservice and informs real-time decisions on whether to offload these operations to specialized accelerators.
 
 \subsection{Contributions}
 
