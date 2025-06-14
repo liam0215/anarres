@@ -1,6 +1,6 @@
 \section{Implementation}
 
-Our final artifact will include the following:
+Our final artifact include the following:
 \begin{itemize}
     \item The Blueprint workflow code for our compressed object cache microservice.
     \item The Blueprint plugin code to wrap Intel's QPL library for utilizing the IAA (or performing (de)compression in software if the IAA is not present).
@@ -10,16 +10,30 @@ Our final artifact will include the following:
     \item Scheduler code for polling telemetry information and choosing to reconfigure and redeploy the application.
 \end{itemize}
 
-\subsection{Project Progress}
+We detail the implementation of each component in the following sections.
 
-We have made significant progress on the project so far.
-We spent substantial time getting familiar with Blueprint and reading through example microservices, but are now making good progress on the implementation.
-\begin{itemize}
-    \item We have implemented all of the Blueprint workflow code except for the actual calls to the compression library.
-    \item We are currently implementing the Blueprint plugin code to wrap Intel's QPL library by implementing a C shim layer and using Go's FFI to call the shim layer.
-    \item We have implemented the scaffolding code for building the application as a single process or as separate Docker containers communicating over gRPC.
-    \item We have yet to implement the code to run the experiments and collect measurements.
-    \item We have yet to implement the telemetry code for monitoring (de)compression operation size.
-    \item We have yet to implement the scheduler code for polling telemetry information and making allocation decisions.
-\end{itemize}
+\subsection{Blueprint Scaffolding}
+
+\todo{scaffolding code for building the application as a single process or as separate Docker containers communicating over gRPC.}
+
 For our evaluation, we will be running on two Intel Sapphire Rapids servers, one with the IAA enabled and one without.
+
+\subsection{(De)compression Microservices}
+
+We implemented a gRPC-based microservice that accepts requests for compression and decompression.
+The service is written in Go using the Blueprint framework.
+Each request includes a byte payload.
+The service routes the request to either a CPU-based or IAA-based handler, depending on deployment configuration.
+
+\subsection{QPL Plugin}
+
+Using Go's Foreign Function Interface (FFI), we implemented a C++ shim layer to wrap Intel's QPL library.
+In order to preserve Go's managed memory model, we manage our own memory allocation and deallocation for pointers passed to the shim layer and returned from it.
+
+\subsection{Benchmark}
+
+\todo{Things we measure}
+
+\subsection{Telemetry and Scheduler}
+
+\todo{gRPC. how scheduler polls. failed attempt to use opentelemetry and prometheus}
