@@ -17,15 +17,17 @@ After collecting the results, we can identify this tradeoff point and use it to 
   \centering
   \begin{tikzpicture}[
       node distance=2cm,
-      box/.style={draw, rectangle, minimum width=5cm, minimum height=1cm, align=center},
+      box/.style={draw, rectangle, minimum width=3cm, minimum height=1cm, align=center},
       >=latex
     ]
-    \node[box] (scheduler) {Centralized\\Scheduler};
-    \node[box, below=2cm of scheduler] (ms) {Compression/Decompression\\ Microservice};
+    \node[box] (frontend) {Frontend};
+    \node[box, below=2cm of frontend] (ms) {(De)compression\\ Microservice};
+    \node[box, minimum width=2.35cm, minimum height=0.8cm, left=2cm of ms] (scheduler) {Scheduler};
     \node[box, below=2cm of ms] (accel) {CPU or\\IAA Accelerator};
 
-    \draw[->] ([xshift=-5mm]scheduler.south) -- node[left]{Tasks} ([xshift=-5mm]ms.north);
-    \draw[->] ([xshift=+5mm]ms.north) -- node[right,align=center]{Results \\ \& Telemetry} ([xshift=+5mm]scheduler.south);
+    \draw[->] ([xshift=-5mm]frontend.south) -- node[left]{Tasks} ([xshift=-5mm]ms.north);
+    \draw[->] ([xshift=+5mm]ms.north) -- node[right,align=center]{Results \\} ([xshift=+5mm]frontend.south);
+    \draw[->] (ms.west) -- node[above]{Telemetry} (scheduler.east);
 
     \draw[->]
       ([xshift=-5mm]ms.south) --
@@ -36,16 +38,18 @@ After collecting the results, we can identify this tradeoff point and use it to 
       ([xshift=+5mm]accel.north) --
       node[right]{Responses}
       ([xshift=+5mm]ms.south);
+
   \end{tikzpicture}
   \caption{Microservice System Architecture}
   \label{fig:system_architecture}
 \end{figure}
 
-Our system is comprised of three main components, as shown in \autoref{fig:system_architecture}:
+Our system is comprised of four main components, as shown in \autoref{fig:system_architecture}. Each service is built atop the Blueprint framework.
 
 \begin{itemize}
-    \item Compression/Decompression Microservices: Each service is built atop the Blueprint framework, and accepts (de)compression requests from clients. They are instrumented with lightweight telemetry agents that tag each (de)compression invocation with metadata.
-    \item Centralized Scheduler: Polls telemetry from all agents, maintains a global view of workload characteristics and hardware inventory, and computes scheduling or migration decisions.
+    \item Frontend: Receives tasks from clients and forwards them to the compression/decompression microservice, possibly breaking them into smaller chunks if needed.
+    \item Compression/Decompression Microservices: Accepts (de)compression requests from frontend. They are instrumented with lightweight telemetry agents that tag each (de)compression invocation with metadata.
+    \item Centralized Scheduler/Monitor: Polls telemetry from all agents, maintains a global view of workload characteristics and hardware inventory, and computes scheduling or migration decisions.
     \item CPU or IAA Accelerators: Some microservices are ran atop of Intel In-Memory Analytics Accelerator (IAA) for high-throughput (de)compression, while others run on standard CPUs with accelerator disabled to simulate deployments on machine without IAA.
 \end{itemize}
 
