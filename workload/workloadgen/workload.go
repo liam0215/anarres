@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	// "strconv"
 	"sync"
@@ -29,6 +30,7 @@ type workloadGen struct {
 
 var sizeKb = flag.Int("sizeKb", 64, "Size of value in KB")
 var numWorkers = flag.Int("numWorkers", 2, "Number of workers to send requests in parallel")
+var duration = flag.String("duration", "15s", "Experiment duration (e.g. 15s)")
 
 func NewSimpleWorkload(ctx context.Context, frontend frontend.Frontend) (SimpleWorkload, error) {
 	return &workloadGen{frontend: frontend}, nil
@@ -53,12 +55,16 @@ func (s *workloadGen) Run(ctx context.Context) error {
 	payload := string(buf)
 	fmt.Printf("Using payload of size %d bytes\n", len(payload))
 
+	stop := make(chan bool)
+
 	go func() {
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
+				return
+			case <-stop:
 				return
 			case <-ticker.C:
 				// swap out and reset the counter
@@ -68,20 +74,26 @@ func (s *workloadGen) Run(ctx context.Context) error {
 		}
 	}()
 
+	dur, err := time.ParseDuration(*duration)
+	if err != nil {
+		return err
+	}
 	var wg sync.WaitGroup
-	wg.Add(*numWorkers)
 	for id := 0; id < *numWorkers; id++ {
-		// key := strconv.Itoa(id)
 		key := fmt.Sprintf("key-%d", id)
 		if err := s.frontend.Put(ctx, key, payload); err != nil {
 			return fmt.Errorf("priming client definitions: %w", err)
 		}
 
+		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
 			for {
 				select {
 				case <-ctx.Done():
+					return
+				case <-stop:
+					fmt.Printf("[worker %d] Stopping\n", workerID)
 					return
 				default:
 					err := s.frontend.Put(ctx, key, payload)
@@ -104,8 +116,12 @@ func (s *workloadGen) Run(ctx context.Context) error {
 		}(id)
 	}
 
-	<-ctx.Done()
+	time.Sleep(dur)
+	stop <- true
+	close(stop)
+	log.Println("Gonna wait")
 	wg.Wait()
+	log.Println("Finished all requests")
 	return nil
 }
 

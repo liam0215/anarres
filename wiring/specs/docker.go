@@ -21,7 +21,8 @@ import (
 	"github.com/liam0215/anarres/workflow/compress"
 	"github.com/liam0215/anarres/workflow/frontend"
 	"github.com/liam0215/anarres/workflow/scheduler"
-	"github.com/liam0215/anarres/workload/workloadgen"
+	// "github.com/liam0215/anarres/workload/workloadgen"
+	"github.com/liam0215/anarres/cmplx_workload/workloadgen"
 )
 
 // A wiring spec that deploys each service into its own Docker container and using gRPC to communicate between services.
@@ -60,7 +61,7 @@ func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
 		return ctr_name
 	}
 
-	compression := qpl.Compression(spec, "qpl")
+	compression := qpl.HwCompression(spec, "qpl")
 	compress_service := workflow.Service[compress.CompressService](spec, "compress_service", compression)
 	// opentelemetry.Instrument(spec, compress_service, metric_collector)
 	applyDockerDefaults(compress_service)
@@ -74,7 +75,8 @@ func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
 	goproc.Deploy(spec, scheduler_service)
 	scheduler_ctr := linuxcontainer.Deploy(spec, scheduler_service)
 
-	wlgen := workload.Generator[workloadgen.SimpleWorkload](spec, "wlgen", frontend_service)
+	// wlgen := workload.Generator[workloadgen.SimpleWorkload](spec, "wlgen", frontend_service)
+	wlgen := workload.Generator[workloadgen.ComplexWorkload](spec, "cmplx_wlgen", frontend_service)
 
 	// Instantiate starting with the frontend which will trigger all other services to be instantiated
 	// Also include the tests and wlgen

@@ -7,4 +7,4 @@ rm ./build/docker/frontend_ctr/Dockerfile
 cp ./offload_docker_files/docker-compose.yml ./build/docker/docker-compose.yml
 cp ./offload_docker_files/Compress_Dockerfile ./build/docker/compress_ctr/Dockerfile
 cp ./offload_docker_files/Frontend_Dockerfile ./build/docker/frontend_ctr/Dockerfile
-cp ./workload/xml ./build/wlgen/wlgen_proc/wlgen_proc/xml
+cp ./workload/xml ./build/cmplx_wlgen/cmplx_wlgen_proc/cmplx_wlgen_proc/xml

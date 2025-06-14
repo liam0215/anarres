@@ -6,10 +6,9 @@ import (
 	"github.com/blueprint-uservices/blueprint/blueprint/pkg/coreplugins/service"
 	"github.com/blueprint-uservices/blueprint/blueprint/pkg/ir"
 	"github.com/blueprint-uservices/blueprint/plugins/golang"
+	"github.com/blueprint-uservices/blueprint/plugins/golang/gocode"
 	"github.com/blueprint-uservices/blueprint/plugins/workflow/workflowspec"
 	"golang.org/x/exp/slog"
-
-	"github.com/liam0215/anarres/runtime/plugins/qpl"
 )
 
 // The CompressionBackend IR node represents a compression service implementation
@@ -23,10 +22,11 @@ type CompressionBackend struct {
 
 	InstanceName string
 	Spec         *workflowspec.Service
+	BackendImpl  string
 }
 
-func newCompressionBackend(name string) (*CompressionBackend, error) {
-	spec, err := workflowspec.GetService[qpl.QplCompression]()
+func newCompressionBackend[BackendImpl any](name string) (*CompressionBackend, error) {
+	spec, err := workflowspec.GetService[BackendImpl]()
 	if err != nil {
 		return nil, err
 	}
@@ -34,6 +34,7 @@ func newCompressionBackend(name string) (*CompressionBackend, error) {
 	node := &CompressionBackend{
 		InstanceName: name,
 		Spec:         spec,
+		BackendImpl:  gocode.NameOf[BackendImpl](),
 	}
 	return node, nil
 }
@@ -45,7 +46,7 @@ func (node *CompressionBackend) Name() string {
 
 // Implements ir.IRNode
 func (node *CompressionBackend) String() string {
-	return fmt.Sprintf("%v = QplCompression()", node.InstanceName)
+	return fmt.Sprintf("%v = %v()", node.InstanceName, node.BackendImpl)
 }
 
 // Implements golang.Service
@@ -69,7 +70,7 @@ func (node *CompressionBackend) AddInstantiation(builder golang.NamespaceBuilder
 		return nil
 	}
 
-	slog.Info(fmt.Sprintf("Instantiating QplCompression %v in %v/%v", node.InstanceName, builder.Info().Package.PackageName, builder.Info().FileName))
+	slog.Info(fmt.Sprintf("Instantiating %v %v in %v/%v", node.BackendImpl, node.InstanceName, builder.Info().Package.PackageName, builder.Info().FileName))
 	return builder.DeclareConstructor(node.InstanceName, node.Spec.Constructor.AsConstructor(), nil)
 }
 
