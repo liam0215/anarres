@@ -1,0 +1,80 @@
+\section{Related Works}
+
+In this section, we first review the sources of the “datacenter tax,” then survey prior work on CPU heterogeneity and hardware-aware scheduling, and finally discuss existing approaches to offloading microservices to accelerators in data center settings.
+
+\subsection{The Datacenter Tax}
+
+The term ``datacenter tax'' refers to the overhead incurred by low-level operations that are common across data center workloads, which can consume a significant fraction of CPU cycles in production environments.
+% In the Google 2015 paper \citetitle{kanev2015profiling}
+
+In the 2015 paper \cite{kanev2015profiling} and a succeeding 2019 book \cite{barrosoDatacenterComputer2019} by Google, they discovered that a surprisingly large fraction of CPU time---up to ``one out three compute cycles at Google'' \cite[p. 165]{barrosoDatacenterComputer2019}---gets spent in just a handful of low-level, shared software routines rather than in application logic. They dub this overhead the ``datacenter tax'' and break it down into six components:
+
+\begin{itemize}
+    \item Protobuf management that serializes and deserializes data passed between RPC services.
+    \item RPC libraries that perform load balancing, encryption, and failure detection.
+    \item Further data movement with direct call of \texttt{memcpy} or \texttt{memmove}.
+    \item General-purpose compression. Although the authors do not specify the exact scenarios, they specify that ``[a]pproximately one quarter of all tax cycles are spent compressing and decompressing data'' \cite[p. 162]{kanev2015profiling}.
+    \item Memory allocation, specifically for recursive data structures.
+    \item Hashing, which are mostly for cryptographic hash functions used during communication.
+\end{itemize}
+
+Because these routines are both small and common to many services, targeting them for hardware acceleration or microarchitectural optimization promises far higher payoff per engineering dollar than chasing hotspots in individual binaries.
+
+In our project, we explore the optimization trade-off of the general-purpose compression and decompression operations, which are a significant part of the datacenter tax, using the Intel In-line Accelerator (IAA).
+
+\subsection{Hardware-Aware Scheduling}
+
+Modern CPUs expose heterogeneous types of compute resources to programmers, including:
+\begin{itemize}
+  \item \emph{Performance cores} (P-cores) that are high-performance and out-of-order,
+  \item \emph{Efficiency cores} (E-cores) that are energy-efficient and in-order, and
+  \item \emph{On-die accelerators} that are specialized for low-latency operations, such as Intel IAA for (de)compression.
+\end{itemize}
+These heterogeneous resources require new scheduling policies to maximize performance and energy efficiency.
+This problem is not new; it has been studied in the context of both CPU and accelerator scheduling.
+
+\subsubsection{Heterogeneous CPU Scheduling}
+
+Early work by Menasce et al. \cite{menasceStaticDynamic1995} proposes and compares static and dynamic processor assignment in a single-ISA heterogeneous parallel architecture.
+They introduce dynamic feedback policies that allow jobs to migrate between fast and slow processors based on their execution characteristics, improving overall utilization, and thus throughput and response time.
+However, their work relies on an idealized Markovian model of service times, and ignores the migration overheads and practical constraints of real-world systems.
+
+Building on this, Ghiasi et al. \cite{ghiasiSchedulingHeterogeneous2005} targets server and cluster systems whose cores share an ISA but differ in voltage/frequency capabilities.
+They propose a run-time adaptive scheduler that monitors per-thread performance counters and dynamically map threads and reduce energy cost.
+
+Similarly, Topcuoglu et al. \cite{topcuogluTaskScheduling1999} statically schedules workloads on heterogeneous processors using a DAG.
+Their HEFT (Heterogeneous Earliest Finish Time) and CPOP (Critical Path On a Processor) heuristics rank tasks by critical paths using a DAG and assign them to cores statically.
+However, the methodology requires an accurate a priori knowledge of task execution time, which may not be feasible in practice.
+Also, the static nature of the scheduling may not adapt well to dynamic workload changes.
+
+More recently, Clark et al. \cite{clarkProcessorAcceleration2003} proposes a fully automated framework using data flow graph.
+A compiler-driven dataflow-graph exploration engine identifies critical subgraphs, which are then offloaded to custom functional units integrated into the core pipeline.
+These instructions are then synthesized and accelerated while preserving ISA compatibility.
+However, their alleged automation still requires manual intervention and incurs extra verification overhead for correctness.
+
+Together, these works span a spectrum of scheduling strategies on historical heterogeneous CPUs, laying a comprehensive groundwork for modern heterogeneous hardware scheduling that also involves on-chip accelerators.
+
+\subsubsection{Accelerator Scheduling}
+
+Beyond CPU cores, on-chip accelerators introduce another dimension to scheduling.
+
+Panneerselvam et al. \cite{panneerselvamOperatingSystems2012} argue for treating and scheduling accelerators as OS resources.
+Their prototype integrates an accelerator monitor in the kernel to broker access, enforce QoS, and virtualize devices across processes.
+
+Augonnet et al. \cite{augonnetDataAwareTask2010} extend accelerator with a data-aware scheduler that overlaps DMA transfers and kernel launches across multiple GPUs.
+By prefetching data blocks as soon as dependencies are satisfied, they reduce accelerator idle time and boost throughput.
+However, their scheme depends on accurate transfer-time models, which may not be feasible.
+
+Gupta et al. \cite{guptaPegasusCoordinated2011} present Pegasus, which interposes in the Xen hypervisor to queue and dispatch accelerator access across VMs under global fairness and tail-latency objectives.
+
+Huang et al. \cite{huangCoSAScheduling2021} introduce CoSA, which aims to reduce the exponential scheduling search space of DNN-specific spatial accelerators by formulating computation and data movements as a mixed-integer programming (MIP) problem.
+CoSA outperforms heuristic scheduling tools while reducing scheduling time.
+
+\subsection{Accelerator Offload for Microservices and Data Centers}
+
+There have also been some limited efforts to offload microservices to accelerators in data centers, but mostly as proofs of concept.
+For example, Sriraman et al. introduce Accelerometer \cite{sriramanAccelerometerUnderstanding2020}, a predictive model that predicts realistic speedups when offloading common microservice building blocks at Facebook scale.
+Similarly, Liu et al.'s E3 \cite{liuE3EnergyEfficient2019} extends Azure Service Fabric to offload whole microservices onto SmartNICs, demonstrating energy savings and performance improvements.
+
+Beyond these proofs of concept, there is a significant gap: there does not yet exist a general-purpose scheduler that coordinates microservice workloads across accelerators at data-center scale.
+Our work bridges these domains by combining fine-grained telemetry, centralized decision logic, and potential for migration using Kubernetes to automate the offload of (de)compression to hardware accelerators in microservice environments.

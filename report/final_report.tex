@@ -1,0 +1,48 @@
+\documentclass[letterpaper,twocolumn,12pt]{article}
+\usepackage{usenix2020_09}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{dblfloatfix}
+
+\microtypecontext{spacing=nonfrench}
+
+% define todo as a red text with [TODO: ]
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}
+
+\begin{document}
+
+\date{}
+% \title{Hardware-Aware Scheduling for Microservices with On-Chip Accelerators\thanks{The project repository is available at \url{https://github.com/liam0215/anarres}.}}
+% \title{Project Checkpoint}
+% \title{Hardware-Aware Scheduling for Microservices with On-Chip Accelerators}
+\title{Annares: Acceleration-Aware Hardware Allocation for Microservices\thanks{The project repository is available at \url{https://github.com/liam0215/anarres}.}}
+
+
+\author{
+{\rm Liam Arzola, Ye Shu}\\
+University of California, San Diego
+}
+
+\maketitle
+
+\input{fr_intro.tex}
+
+\input{fr_design.tex}
+
+\input{fr_implementation.tex}
+
+\input{fr_results.tex}
+
+\input{fr_related.tex}
+
+\input{fr_conclusion.tex}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

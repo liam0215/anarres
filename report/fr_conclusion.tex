@@ -1,0 +1,7 @@
+\section{Conclusion}
+
+The emergence of on-chip accelerators and the growing complexity of CPU heterogeneity have created new opportunities for optimizing application hardware allocation in data centers. 
+By carefully measuring the potential benefits of offloading operations to specialized accelerators, and weighing them against the overhead of different application configurations, we can make informed decisions about when and how to migrate services across heterogeneous hardware platforms.
+In this project, we have presented a preliminary study on the trade-offs involved in configuring services to take advantage of on-chip accelerators, specifically focusing on the Intel In-Memory Analytics (IAA) accelerator for compression and decompression operations.
+We have shown that even with the additional overhead of gRPC communication, a microservice configuration with offloaded (de)compression can yield marginally better performance than a monolithic configuration.
+These results suggest that location-aware scheduling that takes into account the network delay could be beneficial, but would require further investigation to quantify the trade-offs more precisely.

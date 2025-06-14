@@ -1,0 +1,99 @@
+\section{Design}
+
+To simplify the problem, we focus on just the operation of (de)compression.
+We instrument a microservice in a recently proposed framework called Blueprint~\cite{anand2023blueprint}, which allows for easy microservice reconfiguration, and we collect telemetry on the operation sizes for (de)compression.
+We offload (de)compression on Intel's In-Memory Analytics Accelerator (IAA).
+
+When choosing service boundaries in an application architected as a collection of microservices, there is a tradeoff between splitting off a portion of the application as a distinct microservice and the incurred latency from the additional network communication.
+We characterize this tradeoff in the presence of a compression accelerator (Intel's IAA) by developing a toy microservice---a compressed object cache---and measuring the end-to-end latency and system throughput as we sweep static object sizes.
+
+We run this experiment for two different configurations: the monolithic application without (de)compression acceleration and a microservice configuration with a (de)compression service running with acceleration which is accessed remotely by the cache microservice (memcached).
+We analyze how different network latencies affect the tradeoff point, where the benefit of compression acceleration outweighs the cost of traversing the network for a remote call to the service.
+After collecting the results, we can identify this tradeoff point and use it to program a rule in the centralized scheduler to redeploy the application with a remote compression microservice if the operation size telemetry signals a potential benefit. However, we have not yet implemented this in the current version of the system.
+
+\subsection{Microservice System Architecture}
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}[
+      node distance=2cm,
+      box/.style={draw, rectangle, minimum width=3cm, minimum height=1cm, align=center},
+      >=latex
+    ]
+    \node[box] (frontend) {Frontend};
+    \node[box, below=2cm of frontend] (ms) {(De)compression\\ Microservice};
+    \node[box, minimum width=2.35cm, minimum height=0.8cm, left=2cm of ms] (scheduler) {Scheduler};
+    \node[box, below=2cm of ms] (accel) {CPU or\\IAA Accelerator};
+
+    \draw[->] ([xshift=-5mm]frontend.south) -- node[left]{Tasks} ([xshift=-5mm]ms.north);
+    \draw[->] ([xshift=+5mm]ms.north) -- node[right,align=center]{Results \\} ([xshift=+5mm]frontend.south);
+    \draw[->] (ms.west) -- node[above]{Telemetry} (scheduler.east);
+
+    \draw[->]
+      ([xshift=-5mm]ms.south) --
+      node[left]{Requests}
+      ([xshift=-5mm]accel.north);
+
+    \draw[->]
+      ([xshift=+5mm]accel.north) --
+      node[right]{Responses}
+      ([xshift=+5mm]ms.south);
+
+  \end{tikzpicture}
+  \caption{Microservice System Architecture}
+  \label{fig:system_architecture}
+\end{figure}
+
+Our system is comprised of four main components, as shown in \autoref{fig:system_architecture}. Each service is built atop the Blueprint framework.
+
+\begin{itemize}
+    \item Frontend: Receives tasks from clients and forwards them to the compression/decompression microservice.
+    \item Compression/Decompression Microservices: Accepts (de)compression requests from the frontend. They are instrumented with lightweight telemetry agents that tag each (de)compression invocation with metadata.
+    \item Centralized Scheduler/Monitor: Polls telemetry from the agents, maintains a global view of workload characteristics and hardware inventory, and computes scheduling or migration decisions.
+    \item CPU or IAA Accelerators: Some microservices are run atop of Intel In-Memory Analytics Accelerator (IAA) for high-throughput (de)compression, while others run on standard CPUs with accelerator disabled to simulate deployments on machine without the IAA.
+\end{itemize}
+
+\subsection{Microservice Design}
+
+The Blueprint framework provides a convenient way to build microservices with minimal boilerplate code, and allows for easy service discovery and dynamic reconfiguration.
+The microservices are designed as \texttt{workflows} in the Blueprint framework, where they are defined as a service that accepts RPC calls to conduct the application logic.
+They are then containerized pods through the \texttt{wiring} definitions.
+
+In our design, the microservices can be configured to use either the CPU or the IAA accelerator for (de)compression operations.
+They receive bytes to be compressed or decompressed, which are serialized as a string field, via gRPC.
+The services then call the (de)compression functions, either using the CPU or the IAA, and return the result back to the client again via gRPC.
+
+\subsubsection{Communication with IAA Accelerator}
+
+We extend Blueprint with a plugin to wrap Intel's QPL library \cite{intelIntelQpl2025} for utilizing the IAA.
+We use Go's Foreign Function Interface (FFI) to call the IAA's native APIs for (de)compression operations.
+If the IAA is not present, it will fall back to software (de)compression using largely the same code but without invoking the accelerator.
+
+\subsection{Telemetry Reporting}
+
+To make informed decisions, we collect the operation size for each (de)compression operation and make the microservices stateful.
+We also implement a RPC interface that allows the scheduler to query the operation size for each microservice while they are running.
+
+\subsection{Scheduler Design}
+
+We created a simple centralized scheduler that periodically polls telemetry from all microservices and makes decisions based on the collected data.
+The scheduler maintains a global view of all microservices and their average operation sizes.
+
+In the future, the scheduler will allow users to specify a break-even threshold for operation size, which determines when to offload a (de)compression operation to the IAA.
+If the average operation size exceeds this threshold, the scheduler will trigger a migration workflow to reconfigure and redeploy the affected microservice.
+
+We currently use a centralized scheduler for simplicity and global optimization.
+In large clusters, however, a distributed scheduler---where many local coordinator makes decisions based on local telemetry and peers---could avoid a single point of failure, reduce latency, and scale more effectively.
+We leave this distributed design for future exploration.
+
+\subsection{Migration Workflow}
+
+
+Migration is a hard problem in distributed systems, especially when it comes to microservices.
+The service should remain its availability and consistency during the migration process, and the internal states should either be preserved or reconstructed on the new instance post migration.
+For this project, we try not to let the above issues to be a blocker, and instead pretend that the migration is a simple operation that can be done in a few steps:
+\begin{enumerate}
+  \item The scheduler identifies a microservie that is beneficial to migrated based on the telemetry data and its break-even threshold.
+  \item The scheduler routes a request to Kubernetes to destroy the existing microservice container and recreate it with the new configuration (i.e., using IAA) on the machine with accelerator.
+  \item The scheduler waits for the new microservice to be ready and starts routing requests to it.
+\end{enumerate}

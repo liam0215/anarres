@@ -1,0 +1,54 @@
+\section{Introduction}
+
+\subsection{Motivation}
+
+Data centers today pay a ``tax'' on workloads comprised of common operations that support running modern applications in the cloud.
+In 2015, Google published a paper characterizing the problem of the ``datacenter tax,'' in which they profiled thousands of machines over a three-year period to find that nearly 30\% of all cycles in the fleet belonged to just a handful of low-level operations~\cite{kanev2015profiling}.
+Instead of being spent on business logic, these cycles were spent on auxiliary tasks such as serialization, RPC management, memory allocation, and compression/decompression.
+
+
+These operations are common across many services, and thus optimizing them can yield significant performance improvements across a wide range of applications.
+This discovery, paired with the end of Dennard scaling and the subsequent slowdown in the improvement of single thread performance, led to a decade of increased interest in low latency ``on-chip'' accelerators, which are better suited for offloading small granularity datacenter tax operations.
+For example, Intel's Sapphire Rapids CPUs introduced the Intel In-line Accelerator (IAA) for operations such as memory copy and fill, (de)compression, and de/encryption~\cite{yuan2024intel}.
+
+Along with other forms of CPU heterogeneity, like the presence of energy-efficient cores and performance cores, the introduction of on-chip accelerators has led to increased complexity when choosing on which hardware to deploy an application.
+For example, an application with insufficient instruction-level parallelism that is often stalled on accesses to memory may be better placed on efficiency cores; in contrast, an application with more instructions per cycle would be better off running on performance cores~\cite{kanev2015profiling}.
+
+In this project, we aim to present a preliminary study on the trade-off between the benefit from offloading operations to specialized accelerators and the overhead of placing parts of workloads on different servers.
+
+\subsection{Problem Statement}
+
+Scheduling applications on heterogeneous hardware is not a new problem; it is a hot topic in machine learning research~\cite{narayanan2023hetero,subramanya2023sia}.
+However, despite the growing heterogeneity of special purpose hardwares, general-purpose applications like microservices have not had as much attention, especially with regard to hardware heterogeneity.
+Currently, if developers want to optimize the hardware allocation for their microservice, they have to manually profile it on different hardware platforms, potentially swapping out specialized libraries to take advantage of local accelerators.
+
+Manual profiling also struggles to keep up with the dynamic nature of changing workloads in production.
+For example, a microservice that is CPU-bound under one workload might become memory-bound under another, and thus would benefit from being migrated to a different hardware platform.
+The lack of a feedback loop between runtime telemetry and scheduling decisions means that many potential performance are at best underutilized and at worst wasted.
+
+In this project, we aim to address the problem of scheduling microservices on heterogeneous hardware by designing a system that continuously profiles the cost of operations within a microservice and informs real-time decisions on whether to place the microservice on a different hardware platform to take advantage of specialized accelerators.
+
+\subsection{Contributions}
+
+We propose a system for automatically detecting when an operation within a microservice would benefit enough from offloading the operation to an on-chip accelerator to warrant migrating the microservice to different hardware.
+The system makes the following contributions:
+
+\begin{itemize}
+    \item Microservice Telemetry.
+
+    Microservices communicate profile statistics for different operations to a centralized scheduler service that makes an allocation decision.
+
+    \item Telemetry-driven Centralized Scheduler.
+
+    The scheduler service makes allocation decisions, reconfigures and recompiles the necessary microservices to run on the allocated new hardware, and redeploys the microservices.
+
+    \item Blueprint Plugin for IAA Acceleration.
+
+    We extend the blueprint microservice platform with a plugin that allows Go programs to invoke the Intel IAA for compression and decompression operations using a native Intel IAA library.
+
+    \item Microbenchmarking Framework \& Tradeoff Analysis.
+
+    We build a suite of microbenchmarks to characterize network overhead versus acceleration speedup, giving insights into when offloading truly pays off.
+\end{itemize}
+
+With these pieces in place, our system closes the loop from telemetry to placement to execution, ensuring that microservices automatically exploit the full spectrum of compute resources available in modern servers.

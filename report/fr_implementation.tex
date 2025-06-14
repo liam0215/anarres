@@ -1,0 +1,56 @@
+\section{Implementation}
+
+Our final artifact includes the following:
+\begin{itemize}
+    \item The Blueprint workflow code for our compressed object cache microservice.
+    \item The Blueprint plugin code to wrap Intel's QPL library for utilizing the IAA (or performing (de)compression in software if the IAA is not present).
+    \item The Blueprint scaffolding code for the monolithic and microservice configurations.
+    \item The benchmark code for orchestrating the experiments and measuring the end-to-end latency and system throughput for the different deployments.
+    \item Telemetry code for monitoring (de)compression operation size.
+    \item Scheduler code for polling telemetry information and, in the future, choosing to reconfigure and redeploy the application.
+\end{itemize}
+
+We detail the implementation of each component in the following sections.
+
+\subsection{Blueprint Scaffolding}
+
+The Blueprint scaffolding code is written as Blueprint wiring specifications. The wiring specification instantiates services that were declared in the workflow and then applies different Blueprint plugins to those service instances.
+In our case, this mostly consists of instantiating the compression library plugin, each of the services, and then declaring in which container each service should run.
+We use two primary wiring specifications:
+\begin{enumerate}
+    \item \textbf{Monolithic Deployment:} This wiring specification deploys the frontend and compression service as a single process and container. It instantiates the software-only version of the compression library.
+    \item \textbf{Microservice Deployment:} This wiring specification deploys the frontend and compression service as separate processes and containers. It instantiates the IAA-based version of the compression library.
+\end{enumerate}
+Both instantiate a Memcached service in a separate container to serve as the cache. The scheduler is also instantiated in a separate container, which polls telemetry from the compression service using gRPC.
+
+\subsection{(De)compression Microservices}
+
+We implemented a gRPC-based microservice that accepts requests for compression and decompression.
+The service is written in Go using the Blueprint framework in workflow files.
+The service routes the request to either a CPU-based or IAA-based library instance, depending on the deployment configuration.
+They collect operation size and counts on each invocation and expose a gRPC interface for the scheduler to query them.
+
+\subsection{QPL Plugin}
+
+Using Go's Foreign Function Interface (FFI), we implemented a C++ shim layer to wrap Intel's QPL library.
+In order to preserve Go's managed memory model, we manage our own memory allocation and deallocation for pointers passed to the shim layer and returned from it.
+We allocate a QPL job buffer on every (de)compression operation, which adds avoidable overhead.
+We leave optimizing this by using a pool of preallocated buffers for future work.
+
+\subsection{Benchmark}
+
+We implemented microbenchmarks to measure the end-to-end latency and throughput of requests to the application.
+We utilized the Blueprint ComplexWorkload framework to define an open-loop workload that sends Get and Put requests, in equal proportion, to the application.
+The request data size is statically set for the duration of the benchmark, and the workload is run for a fixed duration.
+We measure the end-to-end latency of each request as the request size is varied, sweeping sizes from 1KB to 128KB in powers of two.
+The offered load is configurable, and we measure the end-to-end latency as the offered load varies.
+
+\subsection{Telemetry and Scheduler}
+
+We had initially designed the telemetry to be collected from the compression service using OpenTelemetry~\cite{otel} and Prometheus~\cite{prometheus}. 
+We implemented a plugin for Prometheus to collect the available OpenTelemetry metrics through Blueprint's existing OpenTelemetry integration. 
+However, due to a serious bug in the Prometheus plugin, we were unable to use it in our final implementation.
+Instead, we implemented barebones telemetry collection using gRPC, where the compression service exposes a gRPC interface to query the operation size and count.
+The scheduler polls the telemetry information from the compression service every second and logs the average operation size.
+We leave it for future work to implement a more robust telemetry collection and visualization system using OpenTelemetry and Prometheus.
+We also leave it for future work to implement a scheduler that can reconfigure and redeploy the application based on the telemetry information.
