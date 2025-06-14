@@ -25,5 +25,6 @@ func main() {
 		specs.Basic,
 		specs.GRPC,
 		specs.Docker,
+		specs.DockerMonolith,
 	)
 }

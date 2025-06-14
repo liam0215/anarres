@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run --script
 # /// script
-# dependencies = ["matplotlib", "numpy"]
+# dependencies = ["numpy"]
 # ///
 import subprocess
 import csv

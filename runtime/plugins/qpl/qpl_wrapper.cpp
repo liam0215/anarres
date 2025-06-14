@@ -88,6 +88,7 @@ qpl_status qpl_compress_wrapper(uint8_t *src,
         free(job_buffer);
         return status;
     }
+    free(job_buffer);
 
     return status;
 }
@@ -149,6 +150,7 @@ qpl_status qpl_decompress_wrapper(uint8_t *src,
         free(job_buffer);
         return status;
     }
+    free(job_buffer);
 
     return status;
 }
