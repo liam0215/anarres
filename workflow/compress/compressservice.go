@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/liam0215/anarres/runtime/core/backend"
 	"github.com/pkg/errors"
+	"sync/atomic"
 )
 
 type (
@@ -13,17 +14,35 @@ type (
 
 		// Decompress value and return it
 		Decompress(ctx context.Context, value []byte, decompressedLen int) (string, error)
+
+		// GetMetrics returns the compression and decompression metrics
+		GetMetrics(ctx context.Context) (CompressionMetrics, error)
 	}
 )
 
+type CompressionMetrics struct {
+	CompressionSizeAcc   int64
+	NumCompressions      int64
+	DecompressionSizeAcc int64
+	NumDecompressions    int64
+}
+
 type compressImpl struct {
 	compressLib backend.Compression
+
+	metrics CompressionMetrics
 }
 
 // Instantiates the Frontend service, which makes calls to the compress service
 func NewCompressService(ctx context.Context, compressLib backend.Compression) (CompressService, error) {
 	c := &compressImpl{
 		compressLib: compressLib,
+		metrics: CompressionMetrics{
+			CompressionSizeAcc:   0,
+			NumCompressions:      0,
+			DecompressionSizeAcc: 0,
+			NumDecompressions:    0,
+		},
 	}
 	return c, nil
 }
@@ -39,6 +58,11 @@ func (c *compressImpl) Compress(ctx context.Context, value string) ([]byte, erro
 		panic(err)
 	}
 
+	// Record metrics
+	originalLen := int64(len(value))
+	atomic.AddInt64(&c.metrics.CompressionSizeAcc, originalLen)
+	atomic.AddInt64(&c.metrics.NumCompressions, 1)
+
 	return comp, nil
 }
 
@@ -53,5 +77,13 @@ func (c *compressImpl) Decompress(ctx context.Context, value []byte, decompresse
 		panic(err)
 	}
 
+	// Record metrics
+	atomic.AddInt64(&c.metrics.DecompressionSizeAcc, int64(decompressedLen))
+	atomic.AddInt64(&c.metrics.NumDecompressions, 1)
+
 	return string(dec), nil
+}
+
+func (c *compressImpl) GetMetrics(ctx context.Context) (CompressionMetrics, error) {
+	return c.metrics, nil
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/liam0215/anarres/plugins/qpl"
 	"github.com/liam0215/anarres/workflow/compress"
 	"github.com/liam0215/anarres/workflow/frontend"
+	"github.com/liam0215/anarres/workflow/scheduler"
 	"github.com/liam0215/anarres/workload/workloadgen"
 )
 
@@ -39,7 +40,7 @@ func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
 	// trace_collector := jaeger.Collector(spec, "jaeger")
 
 	// Modifiers that will be applied to all services
-	applyDockerDefaults := func(serviceName string, useHTTP ...bool) {
+	applyDockerDefaults := func(serviceName string, useHTTP ...bool) string {
 		// Golang-level modifiers that add functionality
 		retries.AddRetries(spec, serviceName, 3)
 		clientpool.Create(spec, serviceName, 10)
@@ -51,10 +52,12 @@ func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
 
 		// Deploying to namespaces
 		goproc.Deploy(spec, serviceName)
-		linuxcontainer.Deploy(spec, serviceName)
+		ctr_name := linuxcontainer.Deploy(spec, serviceName)
 
 		// Also add to tests
 		gotests.Test(spec, serviceName)
+
+		return ctr_name
 	}
 
 	compression := qpl.Compression(spec, "qpl")
@@ -65,11 +68,15 @@ func makeDockerSpec(spec wiring.WiringSpec) ([]string, error) {
 	cache := memcached.Container(spec, "cache")
 	// cache := simple.Cache(spec, "cache")
 	frontend_service := workflow.Service[frontend.Frontend](spec, "frontend", compress_service, cache)
-	applyDockerDefaults(frontend_service)
+	frontend_ctr := applyDockerDefaults(frontend_service)
+
+	scheduler_service := workflow.Service[*scheduler.SchedulerServiceImpl](spec, "scheduler_service", compress_service)
+	goproc.Deploy(spec, scheduler_service)
+	scheduler_ctr := linuxcontainer.Deploy(spec, scheduler_service)
 
 	wlgen := workload.Generator[workloadgen.SimpleWorkload](spec, "wlgen", frontend_service)
 
 	// Instantiate starting with the frontend which will trigger all other services to be instantiated
 	// Also include the tests and wlgen
-	return []string{frontend_service, wlgen, "gotests"}, nil
+	return []string{scheduler_ctr, frontend_ctr, wlgen, "gotests"}, nil
 }

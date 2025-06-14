@@ -50,6 +50,16 @@ services:
     restart: always
     cpuset: "21,23,25,27,29,31,33,35"
 
+  scheduler_ctr:
+    build:
+      context: scheduler_ctr
+      dockerfile: ./Dockerfile
+    hostname: scheduler_ctr
+    environment:
+     - COMPRESS_SERVICE_GRPC_DIAL_ADDR=compress_ctr:12345
+    restart: always
+    cpuset: "37"
+
   # jaeger_ctr:
   #   image: jaegertracing/all-in-one:latest
   #   hostname: jaeger_ctr
