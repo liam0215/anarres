@@ -4,16 +4,9 @@
 
 Data centers today pay a hidden ``tax'' on workloads from the inefficiencies of general-purpose hardware.
 In 2015, Google published a paper characterizing the problem of the ``datacenter tax,'' in which they profiled thousands of machines over a three-year period to find that nearly 30\% of all cycles in the fleet belonged to just a handful of low-level operations~\cite{kanev2015profiling}.
-
-% \todo{we can list the low-level operations for more texts}
-
-Taken together, these costs translate into longer tail latencies, higher energy bills, and unnecessarily more computing resources to achieve the same level of performance.
-For many large-scale services, the majority of CPU cycles go toward these auxiliary tasks rather than the ``business logic'' itself.
-Meanwhile, the long-celebrated Dennard scaling story---where transistor shrinkage yielded proportional gains in frequency, power, and area---came to an end around the mid-2000s. Without power-density improvements to match, clock-frequency increases plateaued, and single-thread performance saw only incremental bump-by-bump gains.
-
-To continue driving performance, the industry began packing more specialized units (vector ALUs, GPUs, and domain-specific accelerators) onto the same die or system.
-% This discovery, paired with the end of Dennard scaling and the subsequent slowdown in the improvement of single thread performance, led to a decade of increased interest in
-These low latency ``on-chip'' accelerators are better suited for offloading small granularity datacenter tax operations.
+Instead of being spent on business logic, these cycles were spent on auxiliary tasks such as serialization, RPC management, memory allocation, and compression/decompression.
+These operations are common across many services, and thus optimizing them can yield significant performance improvements across a wide range of applicatio
+This discovery, paired with the end of Dennard scaling and the subsequent slowdown in the improvement of single thread performance, led to a decade of increased interest in low latency ``on-chip'' accelerators are better suited for offloading small granularity datacenter tax operations.
 For example, Intel's Sapphire Rapids CPUs introduced the Intel In-line Accelerator (IAA) for operations such as memory copy and fill, (de)compression, and de/encryption~\cite{yuan2024intel}.
 
 Along with other forms of CPU heterogeneity, like the presence of energy-efficient cores and performance cores, the introduction of on-chip accelerators has led to increased complexity when choosing on which hardware to deploy an application.
